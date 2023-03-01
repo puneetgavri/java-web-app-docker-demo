@@ -130,7 +130,7 @@
 			<plugin>
 				          <groupId>org.sonarsource.scanner.maven</groupId>
 					            <artifactId>sonar-maven-plugin</artifactId>
-						              <version>4.8.0.2856</version>
+						              <version>3.9.1.2184</version>
 							              </plugin>
 								              <plugin>
 										                <groupId>org.jacoco</groupId>
