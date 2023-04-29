@@ -102,12 +102,12 @@
 	    <repository>
 	      <id>nexus</id>
 	      <name>Mithun Technologies Releases Nexus Repository</name>
-	      <url>http://54.219.213.138:8081/repository/nexus-hosted-repo/</url>
+	      <url>http://54.163.107.177:8081/repository/nexus-hosted-repo/</url>
 	    </repository>
 	    <snapshotRepository>
 	      <id>nexus</id>
 	      <name>Mithun Technologies Snapshot Nexus Repository </name>
-	      <url>http://54.219.213.138:8081/repository/nexus-hosted-repo/</url>
+	      <url>http://54.163.107.177:8081/repository/nexus-hosted-repo/</url>
 	    </snapshotRepository>
 	</distributionManagement>
 	
