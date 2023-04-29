@@ -30,7 +30,7 @@ pipeline{
        }
         stage('Upload artifact to Nexus') {
             steps{
-                nexusArtifactUploader artifacts: [[artifactId: 'java-web-app', classifier: '', file: 'target/java-web-app-5.0.war', type: 'war']], credentialsId: 'nexuscreds', groupId: 'com.mt', nexusUrl: '54.219.213.138:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'nexus-hosted-repo', version: '5.0'
+                nexusArtifactUploader artifacts: [[artifactId: 'java-web-app', classifier: '', file: 'target/java-web-app-5.0.war', type: 'war']], credentialsId: 'nexuscreds', groupId: 'com.mt', nexusUrl: '54.163.107.177:8081', nexusVersion: 'nexus3', protocol: 'http', repository: 'nexus-hosted-repo', version: '5.0'
                 }
                
         }
@@ -48,10 +48,60 @@ pipeline{
             }
         }
        
-        stage("Deployment"){
-            steps{
-                sh 'sudo su && ssh -o StrictHostKeyChecking=no 52.53.212.90 docker run -td --name appcontainer1 -p 80:8080 puneetgavri/javaapp:${BUILD_NUMBER}'
+       stage('downloadkey') {
+              steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: "aws_creds",
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                 sh 'aws s3 cp s3://aaanewtestbucket/testkpNV.pem .'
+                }
             }
+        }
+	 stage('create ec2') {
+             steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: "aws_creds",
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                 sh 'aws ec2 run-instances --image-id ami-03c7d01cf4dedc891 --instance-type t2.medium --security-group-ids sg-0c753e8d4586a889f --key-name testkpNV --tag-specifications \'ResourceType=instance,Tags=[{Key=Name,Value=Demoec2}]\' --region us-east-1'
+                script {
+		def myinstanceid = sh(script: "aws ec2 describe-instances --filters 'Name=tag:Name,Values=Demoec2' --output text --query 'Reservations[*].Instances[*].InstanceId' --region us-east-1", returnStdout: true).trim() 
+				println "instance id of the instance is ${myinstanceid}"
+				env.INSTANCE_ID = myinstanceid
+			}
+		
+		}
+            }
+        }
+	stage('Get IP') {
+             steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: "myaws_cred",
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                script {
+		def myIP = sh(script: "aws ec2 describe-instances --instance-ids ${INSTANCE_ID} --query 'Reservations[].Instances[].PublicIpAddress' --output text --region us-east-1", returnStdout: true).trim() 
+				println "IP of the instance is ${myIP}"
+				env.IP = myIP
+			}
+		
+		}
+            }
+        }
+	    
+	  stage("ssh to ec2") {
+                steps {
+                    script {
+			    sh "chmod 400 NVkeypair.pem && ssh -o StrictHostKeyChecking=no -i testkpNV.pem ec2-user@${env.IP} 'sudo yum update -y && sudo yum install docker -y && sudo systemctl start docker && sudo usermod -a -G docker ec2-user && sudo chmod 755 /var/run/docker.sock && sudo docker pull fabinta/myjenkins_project:${BUILD_NUMBER} && sudo docker run -td --name mydemocontainer fabinta/myjenkins_project:${BUILD_NUMBER}'"
+                    }
+                }
         }
     }
 	post{
