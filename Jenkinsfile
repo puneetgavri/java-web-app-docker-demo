@@ -21,7 +21,7 @@ pipeline{
                 sh 'mvn clean package'
             }
        }
-      // stage('SonarQube analysis') {
+      // stage('SonarQubejhasds analysis') {
         //    steps{
           //        withSonarQubeEnv('mysonarserver') { 
             //      sh "mvn sonar:sonar"
